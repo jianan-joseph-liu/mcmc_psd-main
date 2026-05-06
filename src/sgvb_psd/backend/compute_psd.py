@@ -56,7 +56,7 @@ def compute_psd(
     psd_all = np.linalg.inv(spectral_density_inverse_all)
 
     pointwise_ci = __get_pointwise_ci(psd_all, quantiles)
-    uniform_ci = __get_uniform_ci(psd_all, pointwise_ci)
+    #uniform_ci = __get_uniform_ci(psd_all, pointwise_ci)
 
     # changing freq from [0, 1/2] to [0, samp_freq/2] (and applying scaling)
     if fs:
@@ -65,12 +65,12 @@ def compute_psd(
         new_scale = true_fmax / original_fmax
         psd_all = psd_all / new_scale
         pointwise_ci = pointwise_ci / new_scale
-        uniform_ci = uniform_ci / new_scale
+        #uniform_ci = uniform_ci / new_scale
 
     return (
         psd_all,
         pointwise_ci * psd_scaling ** 2,
-        uniform_ci * psd_scaling ** 2,
+        #uniform_ci * psd_scaling ** 2,
     )
 
 
