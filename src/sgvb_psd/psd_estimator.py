@@ -288,12 +288,12 @@ class PSDEstimator:
         (
             self.psd_all,
             self.pointwise_ci,
-            #self.uniform_ci,
+            self.uniform_ci,
         ) = self.model.compute_psd(
             self.samps, psd_scaling=self.psd_scaling, fs=self.fs
         )
         self.runtimes = times
-        return self.psd_all, self.pointwise_ci#, self.uniform_ci
+        return self.psd_all, self.pointwise_ci, self.uniform_ci
 
     @property
     def freq(self) -> np.ndarray:
