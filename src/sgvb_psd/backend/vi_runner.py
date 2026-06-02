@@ -27,6 +27,9 @@ class ViRunner:
         degree_fluctuate: float = None,
         init_params: List[tf.Tensor] = None,
         fmin_for_analysis: float = None,
+        fmin_idx_extension: int = 0,
+        fmax_idx_extension: int = 32,
+        Nbw: float = 1.0,
     ):
         self.data = AnalysisData(
             x=x,
@@ -36,6 +39,8 @@ class ViRunner:
             N_theta=N_theta,
             N_delta=N_theta,  # N_theta == N_delta in all cases
             fmin_for_analysis=fmin_for_analysis,
+            fmin_idx_extension=fmin_idx_extension,
+            fmax_idx_extension=fmax_idx_extension,
         )
 
         ## Define Model
@@ -43,6 +48,7 @@ class ViRunner:
             self.data,
             degree_fluctuate=degree_fluctuate,
             init_params=init_params,
+            Nbw=Nbw,
         )
         self.variation_factor = variation_factor
         

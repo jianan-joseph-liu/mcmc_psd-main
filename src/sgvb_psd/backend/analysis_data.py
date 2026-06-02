@@ -16,6 +16,8 @@ class AnalysisData:  # Parent used to create BayesianModel object
         N_theta: int = 15,
         N_delta: int = 15,
         fmin_for_analysis: float = None,
+        fmin_idx_extension: int = 0,
+        fmax_idx_extension: int = 32,
     ):
         # x:      N-by-p, multivariate timeseries with N samples and p dimensions
         # y_ft:   fourier transformed time series
@@ -34,14 +36,23 @@ class AnalysisData:  # Parent used to create BayesianModel object
         self.fs = fs
         self.fmax_for_analysis = fmax_for_analysis
         self.fmin_for_analysis = fmin_for_analysis
+        self.fmin_idx_extension = fmin_idx_extension
+        self.fmax_idx_extension = fmax_idx_extension
 
         # Compute the required datasets
-        self.y_ft, self.freq, self.u = compute_chunked_fft(
+        (
+            self.y_ft,
+            self.freq,
+            self.u,
+            self.output_keep_mask,
+        ) = compute_chunked_fft(
             self.x,
             self.nchunks,
             self.fmax_for_analysis,
             self.fs,
             self.fmin_for_analysis,
+            self.fmin_idx_extension,
+            self.fmax_idx_extension,
         )
         self.Zar = _compute_Zmatrix_from_u(self.u)
         Xmat_delta, Xmat_theta = _compute_Xmatrices(
@@ -170,6 +181,8 @@ def compute_chunked_fft(
     fmax_for_analysis: float,
     fs: float,
     fmin_for_analysis: float = None,
+    fmin_idx_extension: int = 0,
+    fmax_idx_extension: int = 32,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Scaled fft and get the elements of freq = 1:[Nquist] (or 1:[fmax_for_analysis] if specified)
@@ -223,8 +236,22 @@ def compute_chunked_fft(
     fmin_idx = 0
     if fmin_for_analysis is not None:
         fmin_idx = np.searchsorted(ftrue_y, fmin_for_analysis)
-    y_ft = y_ft[:, fmin_idx:fmax_idx, :]
-    fq_y = fq_y[fmin_idx:fmax_idx]
+
+    padded_fmin_idx = fmin_idx
+    if fmin_for_analysis is not None:
+        padded_fmin_idx = max(fmin_idx - int(fmin_idx_extension), 0)
+
+    padded_fmax_idx = fmax_idx
+    if fmax_for_analysis is not None:
+        padded_fmax_idx = min(fmax_idx + int(fmax_idx_extension), len(ftrue_y))
+
+    output_keep_mask = np.zeros(padded_fmax_idx - padded_fmin_idx, dtype=bool)
+    output_start = fmin_idx - padded_fmin_idx
+    output_end = output_start + (fmax_idx - fmin_idx)
+    output_keep_mask[output_start:output_end] = True
+
+    y_ft = y_ft[:, padded_fmin_idx:padded_fmax_idx, :]
+    fq_y = fq_y[padded_fmin_idx:padded_fmax_idx]
     
     I_blocks = y_ft[:, :, :, None] * np.conjugate(y_ft[:, :, None, :])
     Y = np.sum(I_blocks, axis=0)
@@ -235,5 +262,5 @@ def compute_chunked_fft(
     eigvals = np.clip(eigvals.real, a_min=0.0, a_max=None)
     u = eigvecs * np.sqrt(eigvals, dtype=np.float64)[:, None, :]
 
-    return y_ft, fq_y, u
+    return y_ft, fq_y, u, output_keep_mask
     

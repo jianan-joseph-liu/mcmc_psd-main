@@ -96,6 +96,9 @@ class PSDEstimator:
         hmc_step_size=1e-3,
         hmc_num_leapfrog_steps=3,
         hmc_target_accept_prob=0.75,
+        fmin_idx_extension=0,
+        fmax_idx_extension=32,
+        Nbw=1.0,
         **kwargs,
     ):
         """
@@ -133,6 +136,12 @@ class PSDEstimator:
         :type hmc_num_leapfrog_steps: int, optional
         :param hmc_target_accept_prob: Target accept probability for step size adaptation.
         :type hmc_target_accept_prob: float, optional
+        :param fmin_idx_extension: Number of extra frequency bins to include below fmin_for_analysis during fitting, defaults to 0.
+        :type fmin_idx_extension: int, optional
+        :param fmax_idx_extension: Number of extra frequency bins to include above fmax_for_analysis during fitting, defaults to 32.
+        :type fmax_idx_extension: int, optional
+        :param Nbw: Window bandwidth correction factor dividing the likelihood, defaults to 1.0.
+        :type Nbw: float, optional
         """
 
         if seed is not None:
@@ -146,6 +155,9 @@ class PSDEstimator:
         self.hmc_step_size = hmc_step_size
         self.hmc_num_leapfrog_steps = hmc_num_leapfrog_steps
         self.hmc_target_accept_prob = hmc_target_accept_prob
+        self.fmin_idx_extension = fmin_idx_extension
+        self.fmax_idx_extension = fmax_idx_extension
+        self.Nbw = Nbw
 
         self.fs = fs
         self.lr_range = lr_range
@@ -201,6 +213,9 @@ class PSDEstimator:
             degree_fluctuate=self.degree_fluctuate,
             fs=self.fs,
             init_params=init_params,
+            fmin_idx_extension=self.fmin_idx_extension,
+            fmax_idx_extension=self.fmax_idx_extension,
+            Nbw=self.Nbw,
         )
 
     def _learning_rate_optimisation_objective(self, lr):
@@ -292,8 +307,18 @@ class PSDEstimator:
         ) = self.model.compute_psd(
             self.samps, psd_scaling=self.psd_scaling, fs=self.fs
         )
+        self.psd_all = self._trim_to_requested_band(self.psd_all)
+        self.pointwise_ci = self._trim_to_requested_band(self.pointwise_ci)
+        self.uniform_ci = self._trim_to_requested_band(self.uniform_ci)
         self.runtimes = times
         return self.psd_all, self.pointwise_ci, self.uniform_ci
+
+    def _trim_to_requested_band(self, arr: np.ndarray) -> np.ndarray:
+        """Remove the extra fitting-only frequency bins from PSD-shaped arrays."""
+        keep_mask = getattr(self.model.data, "output_keep_mask", None)
+        if keep_mask is None:
+            return arr
+        return arr[:, keep_mask, :, :]
 
     @property
     def freq(self) -> np.ndarray:
@@ -448,4 +473,5 @@ class PSDEstimator:
         psd = self.model.compute_psd(
             spline_params, psd_scaling=self.psd_scaling, fs=self.fs
         )
+        psd = tuple(self._trim_to_requested_band(arr) for arr in psd)
         return spline_params, psd
