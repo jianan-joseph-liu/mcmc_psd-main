@@ -62,6 +62,7 @@ class ViRunner:
         hmc_step_size: float = 1e-3,
         hmc_num_leapfrog_steps: int = 3,
         hmc_target_accept_prob: float = 0.75,
+        hmc_num_steps_between_results: int = 0,
         **kwargs,
     ) -> Tuple[np.ndarray, np.ndarray, BayesianModel, List[tf.Tensor]]:
         logger.debug("Starting Model Inference Training..")
@@ -73,6 +74,7 @@ class ViRunner:
             hmc_step_size=hmc_step_size,
             hmc_num_leapfrog_steps=hmc_num_leapfrog_steps,
             hmc_target_accept_prob=hmc_target_accept_prob,
+            hmc_num_steps_between_results=hmc_num_steps_between_results,
         )
 
         return self.kdl_losses, self.lp, self.model, samp
@@ -130,6 +132,7 @@ class ViRunner:
         hmc_step_size: float = 1e-3,
         hmc_num_leapfrog_steps: int = 3,
         hmc_target_accept_prob: float = 0.75,
+        hmc_num_steps_between_results: int = 0,
         **kwargs,
     ):
         """
@@ -166,6 +169,7 @@ class ViRunner:
                 current_state=current_state,
                 kernel=adaptive_kernel,
                 num_burnin_steps=hmc_burnin_steps,
+                num_steps_between_results=hmc_num_steps_between_results,
                 trace_fn=lambda _, pkr: (
                     pkr.inner_results.is_accepted,
                     pkr.inner_results.accepted_results.target_log_prob,

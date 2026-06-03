@@ -75,6 +75,8 @@ class PSDEstimator:
     :vartype runtimes: dict
     :ivar hmc_burnin_steps: Number of HMC warmup/burn-in steps.
     :vartype hmc_burnin_steps: int
+    :ivar hmc_num_steps_between_results: Number of HMC steps to skip between retained samples.
+    :vartype hmc_num_steps_between_results: int
     """
 
     def __init__(
@@ -96,6 +98,7 @@ class PSDEstimator:
         hmc_step_size=1e-3,
         hmc_num_leapfrog_steps=3,
         hmc_target_accept_prob=0.75,
+        hmc_num_steps_between_results=0,
         fmin_idx_extension=0,
         fmax_idx_extension=32,
         Nbw=1.0,
@@ -136,6 +139,8 @@ class PSDEstimator:
         :type hmc_num_leapfrog_steps: int, optional
         :param hmc_target_accept_prob: Target accept probability for step size adaptation.
         :type hmc_target_accept_prob: float, optional
+        :param hmc_num_steps_between_results: Number of HMC steps to skip between retained samples, defaults to 0.
+        :type hmc_num_steps_between_results: int, optional
         :param fmin_idx_extension: Number of extra frequency bins to include below fmin_for_analysis during fitting, defaults to 0.
         :type fmin_idx_extension: int, optional
         :param fmax_idx_extension: Number of extra frequency bins to include above fmax_for_analysis during fitting, defaults to 32.
@@ -146,6 +151,8 @@ class PSDEstimator:
 
         if seed is not None:
             set_seed(seed)
+        if hmc_num_steps_between_results < 0:
+            raise ValueError("hmc_num_steps_between_results must be non-negative")
 
         self.N_theta = N_theta
         self.N_samples = N_samples
@@ -155,6 +162,7 @@ class PSDEstimator:
         self.hmc_step_size = hmc_step_size
         self.hmc_num_leapfrog_steps = hmc_num_leapfrog_steps
         self.hmc_target_accept_prob = hmc_target_accept_prob
+        self.hmc_num_steps_between_results = hmc_num_steps_between_results
         self.fmin_idx_extension = fmin_idx_extension
         self.fmax_idx_extension = fmax_idx_extension
         self.Nbw = Nbw
@@ -236,6 +244,7 @@ class PSDEstimator:
             hmc_step_size=self.hmc_step_size,
             hmc_num_leapfrog_steps=self.hmc_num_leapfrog_steps,
             hmc_target_accept_prob=self.hmc_target_accept_prob,
+            hmc_num_steps_between_results=self.hmc_num_steps_between_results,
         )
         return hmc_losses[-1].numpy()
 
@@ -267,6 +276,7 @@ class PSDEstimator:
             hmc_step_size=self.hmc_step_size,
             hmc_num_leapfrog_steps=self.hmc_num_leapfrog_steps,
             hmc_target_accept_prob=self.hmc_target_accept_prob,
+            hmc_num_steps_between_results=self.hmc_num_steps_between_results,
         )
 
     def run(self, lr=None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
